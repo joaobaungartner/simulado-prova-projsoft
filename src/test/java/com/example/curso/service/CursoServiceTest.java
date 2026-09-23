@@ -4,6 +4,9 @@ import com.example.curso.entity.Curso;
 import com.example.curso.repository.CursoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.Optional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -93,6 +96,41 @@ class CursoServiceTest {
 
         verify(cursoRepository)
                 .findByNomeStartingWithAndDeletadoFalse("Java");
+        verifyNoMoreInteractions(cursoRepository);
+    }
+
+    @Test
+    void deveDeletarCursoLogicamente() {
+        Curso curso = new Curso();
+        curso.setId(1L);
+        curso.setNome("Java básico");
+        curso.setDeletado(false);
+
+        when(cursoRepository.findById(1L))
+                .thenReturn(Optional.of(curso));
+
+        cursoService.deletar(1L);
+
+        assertTrue(curso.isDeletado());
+
+        verify(cursoRepository).findById(1L);
+        verify(cursoRepository).save(curso);
+        verifyNoMoreInteractions(cursoRepository);
+    }
+
+    @Test
+    void deveRetornar404AoDeletarCursoInexistente() {
+        when(cursoRepository.findById(99L))
+                .thenReturn(Optional.empty());
+
+        ResponseStatusException erro = assertThrows(
+                ResponseStatusException.class,
+                () -> cursoService.deletar(99L)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, erro.getStatusCode());
+
+        verify(cursoRepository).findById(99L);
         verifyNoMoreInteractions(cursoRepository);
     }
 }
