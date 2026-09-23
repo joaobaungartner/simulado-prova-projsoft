@@ -97,4 +97,33 @@ class CursoControllerTest {
 
         return cursoRepository.save(curso);
     }
+
+    @Test
+    void deveDeletarLogicamenteEEsconderDaListagem() throws Exception {
+        Curso curso = salvarCurso("Java básico", false);
+
+        mockMvc.perform(delete("/cursos/{id}", curso.getId()))
+                .andExpect(status().isNoContent());
+
+        Curso salvo = cursoRepository.findById(curso.getId())
+                .orElseThrow();
+
+        assertTrue(salvo.isDeletado());
+        assertEquals("Java básico", salvo.getNome());
+        assertEquals(1L, cursoRepository.count());
+
+        mockMvc.perform(get("/cursos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        mockMvc.perform(get("/cursos").param("nome", "Java"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void deveRetornar404ParaIdInexistente() throws Exception {
+        mockMvc.perform(delete("/cursos/{id}", Long.MAX_VALUE))
+                .andExpect(status().isNotFound());
+    }
 }
